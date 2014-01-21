@@ -106,9 +106,9 @@ module.exports = function(grunt) {
 		var pem_create	= false
 
 		if(!grunt.file.exists( ext_path )){
-			grunt.log.warn("Unable to fine extension in " + ext_path)
+			grunt.log.warn("Unable to find extension in " + ext_path)
 			return false
-		}else{ command.push('--pack-extension='+ext_path); }
+		}else{ command.push('--pack-extension=' + ext_path); }
 
 		if(grunt.file.exists( cert_path )){
 			command.push('--pack-extension-key=' + cert_path);
@@ -129,7 +129,7 @@ module.exports = function(grunt) {
                     if(pem_create){
                     	grunt.log.writeln( 'Moving PEM..' );
                     	var filePath = options.extension.path + '.pem';
-                    	grunt.file.copy( filePath, cert_path );
+                    	grunt.file.copy( filePath, options.extension.cert );
                     	grunt.file.delete(filePath);
                     }
                     done();
@@ -138,11 +138,10 @@ module.exports = function(grunt) {
 	});
 
     grunt.registerTask('chrome-extension-clean', 'clean the build folder', function() {
-        grunt.log.writeln( 'Cleaning tmp dir..' );
-
-        var options = grunt.option('extensionOptions');
-
-        var cleanPath = options.extension.path;
+        var options 	= grunt.option('extensionOptions'),
+        	cleanPath 	= options.extension.path;
+        
+        grunt.log.writeln( 'Cleaning tmp dir [' + cleanPath + ']..' );
         if(options.clean && grunt.file.exists(cleanPath)) {
             grunt.file.delete(cleanPath);
         }
