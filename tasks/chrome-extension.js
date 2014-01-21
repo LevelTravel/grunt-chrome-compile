@@ -97,16 +97,24 @@ module.exports = function(grunt) {
 	});
 
 	grunt.registerTask('chrome-extension-compile', 'compile a crx using google chrome', function() {
-		var options = grunt.option('extensionOptions');
+		var options 	= grunt.option('extensionOptions');
+		var done 		= this.async();
+		var ext_path	= buildAbsolutePath(options.extension.path);
+		var cert_path	= buildAbsolutePath(options.extension.cert);
+		var basename 	= path.basename(ext_path);
+		var command 	= [ '"' + options.chrome + '"', '--no-message-box' ];
+		var pem_create	= false
 
-		var done = this.async();
+		if(!grunt.file.exists( ext_path )){
+			grunt.log.warn("Unable to fine extension in " + ext_path)
+			return false
+		}else{ command.push('--pack-extension='+ext_path); }
 
-        var command = [
-            options.chrome,
-            '--pack-extension='+ buildAbsolutePath(options.extension.path),
-            '--pack-extension-key='+ buildAbsolutePath(options.extension.cert),
-            '--no-message-box'
-        ].join( ' ' );
+		if(grunt.file.exists( cert_path )){
+			command.push('--pack-extension-key=' + cert_path);
+		}else{ pem_create = true }
+
+        command = command.join(' ')
 
         grunt.log.writeln( 'Executing command: %s', command );
         exec( command ,
@@ -118,6 +126,12 @@ module.exports = function(grunt) {
                     var filePath = options.extension.path + '.crx';
                     grunt.file.copy( filePath, options.extension.crx );
                     grunt.file.delete( filePath );
+                    if(pem_create){
+                    	grunt.log.writeln( 'Moving PEM..' );
+                    	var filePath = options.extension.path + '.pem';
+                    	grunt.file.copy( filePath, cert_path );
+                    	grunt.file.delete(filePath);
+                    }
                     done();
                 }
             });
