@@ -64,6 +64,8 @@ module.exports = function(grunt) {
 		grunt.option('extensionOptions', options);
 		grunt.task.run(
 			'chrome-extension-copy',
+			'chrome-extension-manifest',
+			'chrome-extension-update-xml',
 			'chrome-extension-compress',
 			'chrome-extension-compile',
             'chrome-extension-clean'
@@ -81,6 +83,48 @@ module.exports = function(grunt) {
 			{expand: true, cwd: options.cwd || '.', src: options.resources, dest: options.extension.path}
 		]});
 		grunt.task.run('copy:extension');
+	});
+
+	grunt.registerTask('chrome-extension-manifest', 'Builds a manifest.json from object passed to the options', function(){
+		var options 	= grunt.option('extensionOptions'),
+			manifest 	= options.manifest;
+
+		if(manifest != null && Object.prototype.toString.call(manifest) == '[object Object]'){
+			grunt.log.writeln("Creating manifest.json");
+			if(manifest.update_url == null && options.updateUrl != null){
+				manifest.update_url = options.updateUrl;
+			}
+			manifest = JSON.stringify(manifest);
+			grunt.file.write(options.buildDir + '/manifest.json', manifest, { encoding: 'utf-8' });
+		}else{
+			grunt.log.writeln("Manifest is undefined. Define your own manifest.json");
+		}
+	});
+
+	grunt.registerTask('chrome-extension-update-xml', 'Builds an update.xml file for automatic updates', function(){
+		var options 	= grunt.option('extensionOptions'),
+			update_info	= options.update,
+			ext_name 	= path.basename(options.extension.crx);
+
+		if(update_info != null && Object.prototype.toString.call(update_info) == '[object Object]'){
+			grunt.log.writeln("Creating update.xml");
+			var update_url	= update_info.url;
+			if(!update_url.match(/\.crx$/i) || update_url.match(/\/$/)){
+				var protocol 	= update_url.match(/http[s]?:\/\//gi)[0]
+					update_url 	= update_url.replace(protocol, '');
+					update_url	= protocol + (update_url + '/' + ext_name).replace(/([\/]+)/gi, '/')
+			}
+			var update_xml 	= '<?xml version="1.0" encoding="UTF-8"?>\n';
+				update_xml += '<gupdate xmlns="http://www.google.com/update2/response" protocol="2.0">\n';
+	  			update_xml += '  <app appid="' + update_info.id + '">\n';
+	    		update_xml += '    <updatecheck codebase="'  + update_url +  '" version="' + update_info.version + '" />\n';
+				update_xml += '  </app>\n';
+				update_xml += '</gupdate>';
+
+			grunt.file.write(options.buildDir + '/update.xml', update_xml, { encoding: 'utf-8' });
+		}else{
+			grunt.log.writeln("Update.xml is undefined. Define your own update.xml");
+		}
 	});
 
 	grunt.registerTask('chrome-extension-compress', 'compress build folder into a zip for the chrome web store', function() {
